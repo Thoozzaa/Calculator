@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bevestiging</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      text-align: center;
+      border: 3px solid #f2d7d7;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+    h1 {
+      color: #c58a8a;
+      margin-bottom: 20px;
+    }
+    p {
+      margin-top: 10px;
+      color: #555;
+    }
+    .error {
+      color: red;
+      margin-top: 15px;
+      font-size: 14px;
+      text-align: left;
+      background: #ffe6e6;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ffcccc;
+    }
+    .debug {
+      color: #666;
+      margin-top: 10px;
+      font-size: 12px;
+      text-align: left;
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 5px;
+      white-space: pre-wrap;
+    }
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #e8bcbc;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: background-color 0.3s;
+    }
+    a:hover {
+      background: #d2a0a0;
+    }
+    .loading {
+      color: #666;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✅ Aanvraag verzonden</h1>
+    <p id="statusMessage" class="loading">Bezig met verzenden van bevestigingsmail...</p>
+    <p id="errorMessage" class="error" style="display: none;"></p>
+    <p id="debugMessage" class="debug" style="display: none;"></p>
+    <a href="index.html">Terug naar begin</a>
+  </div>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const raw = localStorage.getItem("aanvraagData");
+      const data = raw ? JSON.parse(raw) : null;
+
+      // Debug: log de data die we proberen te versturen
+      console.log("Aanvraag data uit localStorage:", data);
+
+      if (!data) {
+        // Geen data gevonden, toon foutmelding
+        const statusP = document.getElementById("statusMessage");
+        const errorP = document.getElementById("errorMessage");
+        statusP.style.display = "none";
+        errorP.textContent = "Er is geen aanvraagdata gevonden. Probeer nogmaals het formulier in te vullen.";
+        errorP.style.display = "block";
+        return;
+      }
+
+      // Controleer of verplichte velden aanwezig zijn
+      const requiredFields = ['voornaam', 'email'];
+      const missingFields = requiredFields.filter(field => !data[field] || data[field].trim() === '');
+      
+      if (missingFields.length > 0) {
+        const statusP = document.getElementById("statusMessage");
+        const errorP = document.getElementById("errorMessage");
+        statusP.style.display = "none";
+        errorP.textContent = `Ontbrekende verplichte velden: ${missingFields.join(', ')}`;
+        errorP.style.display = "block";
+        return;
+      }
+
+      // Log de fetch request
+      console.log("Sending POST request to verzendmail.php with data:", JSON.stringify(data));
+
+      fetch("verzendmail.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      })
+      .then(res => {
+        console.log("Response status:", res.status);
+        console.log("Response headers:", res.headers);
+        
+        // Lees de response text ongeacht de status code
+        return res.text().then(text => {
+          return {
+            status: res.status,
+            statusText: res.statusText,
+            text: text,
+            ok: res.ok
+          };
+        });
+      })
+      .then(response => {
+        console.log("Full response:", response);
+        
+        const statusP = document.getElementById("statusMessage");
+        const errorP = document.getElementById("errorMessage");
+        const debugP = document.getElementById("debugMessage");
+        
+        if (response.ok) {
+          // Success
+          statusP.textContent = "Bedankt! We hebben je aanvraag goed ontvangen en een bevestigingsmail verzonden.";
+          statusP.className = "";
+          localStorage.removeItem("aanvraagData");
+          console.log("Mail verzonden:", response.text);
+        } else {
+          // Error
+          statusP.style.display = "none";
+          errorP.innerHTML = `
+            <strong>Fout bij het verzenden van de bevestigingsmail (Status: ${response.status})</strong><br>
+            Je aanvraag is wel opgeslagen, maar de bevestigingsmail kon niet worden verzonden.<br>
+            Neem contact op via info@jennfinance.nl of 0228 506923.
+          `;
+          errorP.style.display = "block";
+          
+          // Toon debug informatie
+          debugP.textContent = `Server response: ${response.text}`;
+          debugP.style.display = "block";
+          
+          console.error("Server error:", response);
+        }
+      })
+      .catch(error => {
+        console.error("Fetch error:", error);
+        
+        const statusP = document.getElementById("statusMessage");
+        const errorP = document.getElementById("errorMessage");
+        const debugP = document.getElementById("debugMessage");
+        
+        statusP.style.display = "none";
+        errorP.innerHTML = `
+          <strong>Netwerk fout bij het verzenden van de bevestigingsmail</strong><br>
+          Je aanvraag is wel opgeslagen, maar de bevestigingsmail kon niet worden verzonden.<br>
+          Neem contact op via info@jennfinance.nl of 0228 506923.
+        `;
+        errorP.style.display = "block";
+        
+        debugP.textContent = `Network error: ${error.message}`;
+        debugP.style.display = "block";
+      });
+    });
+  </script>
+</body>
+</html>

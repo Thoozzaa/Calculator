@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lease Calculator</title>
+  <style>
+    button {
+      width: 100%;
+      padding: 15px;
+      background-color: #e8bcbc;
+      color: white;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #d2a0a0;
+    }
+    .form-block {
+      background: #fffefe;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    .form-block h3 {
+      color: #c58a8a;
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #ffffff;
+      display: flex;
+      justify-content: center;
+    }
+    .waarschuwing {
+      border: 1px solid #ffffff;
+      background-color: #ffffff;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 30px;
+    }
+    .waarschuwing img {
+      width: 340px;
+      height: 40px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      border: 1px solid #d2a0a0;
+      border-radius: 4px;
+    }
+    .maandlast-groot {
+      margin: 20px 0;
+      font-size: 32px;
+      font-weight: bold;
+      color: #c58a8a;
+      text-align: center;
+      user-select: none;
+    }
+    .reset-link {
+      font-size: 14px;
+      color: #c58a8a;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-top: 10px;
+      display: inline-block;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="waarschuwing">
+      <img src="https://static.wixstatic.com/media/d63ef0_8bcbb96157884aeea6b5adf928a6584b~mv2.jpg" alt="icoon" />
+    </div>
+
+    <div class="form-block">
+      <h3>Overzicht</h3>
+      <div class="form-group">
+        <label for="verkoopprijs">Aanschafprijs</label>
+        <input type="number" id="verkoopprijs" value="0" />
+      </div>
+      <div class="form-group">
+        <label for="aanbetaling">Aanbetaling / inruil</label>
+        <input type="number" id="aanbetaling" value="0" />
+      </div>
+      <div class="form-group">
+        <label for="slottermijn">Slottermijn</label>
+        <input type="number" id="slottermijn" value="0" readonly />
+      </div>
+      <div class="form-group">
+        <label for="tefinancieren">Te financieren bedrag</label>
+        <input type="number" id="tefinancieren" value="0" readonly />
+      </div>
+      <div class="form-group">
+        <label for="looptijd-select">Selecteer gewenste looptijd</label>
+        <select id="looptijd-select"></select>
+      </div>
+      <div class="maandlast-groot" id="maandlast-groot">€ 0,00 /m</div>
+      <button onclick="gaNaarFormulier()">Volgende</button>
+      <span class="reset-link" onclick="resetWaarden()">Herstel waarden</span>
+    </div>
+  </div>
+
+  <script>
+    // Rente‐ en margesinstellingen
+    const rente = 0.06;
+    const marge = 0.05; 
+    const termijnen = [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72];
+    let geselecteerd = 48; // standaard looptijd
+
+    // Vul de dropdown‐keuzes éénmalig bij DOMContentLoaded
+    window.addEventListener("DOMContentLoaded", () => {
+      const select = document.getElementById("looptijd-select");
+      termijnen.forEach(mnd => {
+        const option = document.createElement("option");
+        option.value = mnd;
+        option.textContent = mnd + " maanden";
+        select.appendChild(option);
+      });
+      select.value = geselecteerd;
+      updateBerekening();
+    });
+
+    // Als de gebruiker de looptijd verandert, pas 'geselecteerd' aan en herbereken
+    function looptijdWijziging() {
+      const select = document.getElementById("looptijd-select");
+      geselecteerd = parseInt(select.value);
+      updateBerekening();
+    }
+    document.getElementById("looptijd-select")?.addEventListener("change", looptijdWijziging);
+
+    // Herstel alle invoer naar de standaardwaarden
+    function resetWaarden() {
+      document.getElementById("verkoopprijs").value = 0;
+      document.getElementById("aanbetaling").value = 0;
+      geselecteerd = 48;
+      document.getElementById("looptijd-select").value = geselecteerd;
+      updateBerekening();
+    }
+
+    // Slaat alle huidige waarden in localStorage, om in factuur.html in te lezen
+    function gaNaarFormulier() {
+      const verkoopprijs = parseFloat(document.getElementById("verkoopprijs").value) || 0;
+      const aanbetaling = parseFloat(document.getElementById("aanbetaling").value) || 0;
+      const teFinancieren = Math.max(verkoopprijs - aanbetaling, 0);
+      const slottermijn = Math.round(teFinancieren * 0.20);
+
+      // Bereken maandlast
+      const maandRente = rente / 12;
+      const gefinancierd = teFinancieren * (1 + marge);
+      const aflosBedrag = (gefinancierd - slottermijn) * maandRente / (1 - Math.pow(1 + maandRente, -geselecteerd));
+      const maandlast = (aflosBedrag + (slottermijn / geselecteerd)).toFixed(2);
+
+      // Opslaan in localStorage
+      localStorage.setItem("financieringBedrag", teFinancieren.toFixed(2));
+      localStorage.setItem("slottermijn", slottermijn.toFixed(2));
+      localStorage.setItem("looptijd", geselecteerd);
+      localStorage.setItem("maandlast", maandlast);
+
+      // Naar aanvraagformulier (factuur.html)
+      window.location.href = "factuur.html";
+    }
+
+    // Herberekening en update van UI‐velden
+    function updateBerekening() {
+      const verkoopprijs = parseFloat(document.getElementById("verkoopprijs").value) || 0;
+      const aanbetaling = parseFloat(document.getElementById("aanbetaling").value) || 0;
+      const teFinancieren = Math.max(verkoopprijs - aanbetaling, 0);
+
+      // Consistente berekening slottermijn op basis van te financieren bedrag
+      const slottermijn = Math.round(teFinancieren * 0.20);
+      document.getElementById("slottermijn").value = slottermijn;
+
+      document.getElementById("tefinancieren").value = teFinancieren.toFixed(2);
+
+      // Maandlast berekening
+      const maandRente = rente / 12;
+      const gefinancierd = teFinancieren * (1 + marge);
+      // we gebruiken de variabele 'geselecteerd' die bij DOMContentLoaded staat op 48, of bij verandering door gebruiker
+      const aflosBedrag = (gefinancierd - slottermijn) * maandRente / (1 - Math.pow(1 + maandRente, -geselecteerd));
+      const maandlast = aflosBedrag + (slottermijn / geselecteerd);
+
+      document.getElementById("maandlast-groot").textContent = `€ ${maandlast.toFixed(2)} /m`;
+    }
+
+    // Elke keer als verkoopprijs of aanbetaling verandert, herberekenen
+    document.getElementById("verkoopprijs")?.addEventListener("input", updateBerekening);
+    document.getElementById("aanbetaling")?.addEventListener("input", updateBerekening);
+  </script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>J&N Finance aanvraagformulier</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .form-container {
+      background: #ffffff;
+      border: 3px solid #f2d7d7;
+      max-width: 480px;
+      width: 100%;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+      box-sizing: border-box;
+    }
+    .form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .form-logo {
+      width: 90px;
+      height: auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #c58a8a;
+    }
+    label {
+      display: block;
+      margin: 15px 0 5px;
+      font-weight: bold;
+      color: #a37474;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d2a0a0;
+      border-radius: 5px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    input:invalid {
+      border-color: red;
+    }
+    .optional {
+      font-weight: normal;
+      font-style: italic;
+      font-size: 0.9em;
+      color: #999;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .button-group button {
+      flex: 1;
+      padding: 15px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      background-color: #e8bcbc;
+      color: white;
+      border-radius: 8px;
+      transition: background-color 0.3s;
+    }
+    .button-group button:hover {
+      background-color: #d2a0a0;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <div class="form-header">
+      <h1>J&amp;N Finance aanvraagformulier</h1>
+      <img src="https://static.wixstatic.com/media/d63ef0_ab804b326a504f2794ce50e485522c58~mv2.png"
+           alt="J&N Finance logo" class="form-logo">
+    </div>
+
+    <form id="aanvraagForm" action="opslaan.php" method="POST">
+      <label for="voornaam">Voornaam* </label>
+      <input id="voornaam" name="voornaam" type="text" required />
+
+      <label for="achternaam">Achternaam* </label>
+      <input id="achternaam" name="achternaam" type="text" required />
+
+      <label for="telefoon">Telefoonnummer* </label>
+      <input id="telefoon" name="telefoon" type="tel" required pattern="[0-9+\- ]+" />
+
+      <label for="email">E-mail* </label>
+      <input id="email" name="email" type="email" required />
+
+      <label for="tefinancieren">Te financieren bedrag* </label>
+      <input id="tefinancieren" name="tefinancieren" type="number" readonly required />
+
+      <label for="looptijd">Looptijd (maanden)* </label>
+      <input id="looptijd" name="looptijd" type="number" readonly required />
+
+      <label for="maandlast">Maandbedrag* </label>
+      <input id="maandlast" name="maandlast" type="text" readonly required />
+
+      <label for="slottermijn">Slottermijn* </label>
+      <input id="slottermijn" name="slottermijn" type="text" readonly required />
+
+      <label for="kvk">KvK nummer <span class="optional">(optioneel)</span></label>
+      <input id="kvk" name="kvk" type="text" pattern="[0-9]*" />
+
+      <label for="bedrijfsnaam">Bedrijfsnaam <span class="optional">(optioneel)</span></label>
+      <input id="bedrijfsnaam" name="bedrijfsnaam" type="text" />
+
+      <label for="voertuigLink">Link naar voertuig <span class="optional">(optioneel)</span></label>
+      <input id="voertuigLink" name="voertuigLink" type="url" />
+
+      <div class="button-group">
+        <button type="submit">Verstuur aanvraag</button>
+        <button type="button" onclick="history.back()">Terug</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Zodra de pagina geladen is, vullen we de readonly‐velden vanuit localStorage
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("tefinancieren").value = localStorage.getItem("financieringBedrag") || "";
+      document.getElementById("looptijd").value       = localStorage.getItem("looptijd") || "";
+      document.getElementById("maandlast").value      = localStorage.getItem("maandlast") || "";
+      document.getElementById("slottermijn").value    = localStorage.getItem("slottermijn") || "";
+    });
+
+    // Intercepteer de verstuur‐actie en stuur JSON naar opslaan.php
+    document.getElementById("aanvraagForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const data = {
+        voornaam:    document.getElementById("voornaam").value.trim(),
+        achternaam:  document.getElementById("achternaam").value.trim(),
+        telefoon:    document.getElementById("telefoon").value.trim(),
+        email:       document.getElementById("email").value.trim(),
+        tefinancieren: document.getElementById("tefinancieren").value,
+        slottermijn:   document.getElementById("slottermijn").value,
+        looptijd:      document.getElementById("looptijd").value,
+        kvk:           document.getElementById("kvk").value.trim(),
+        bedrijfsnaam:  document.getElementById("bedrijfsnaam").value.trim(),
+        voertuigLink:  document.getElementById("voertuigLink").value.trim(),
+        datum:         new Date().toISOString()
+      };
+
+      fetch("opslaan.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.text())
+      .then(result => {
+        // Sla de aanvraagdata op zodat bevestiging.html het kan doorsturen
+        localStorage.setItem("aanvraagData", JSON.stringify(data));
+        window.location.href = "bevestiging.html";
+        console.log("Opslaan reactie:", result);
+      })
+      .catch(error => {
+        alert("Er is een fout opgetreden bij opslaan.");
+        console.error("Fout bij opslaan:", error);
+      });
+    });
+  </script>
+</body>
+</html>
